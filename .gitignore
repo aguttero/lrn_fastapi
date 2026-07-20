@@ -9,5 +9,9 @@ __pycache__/
 .idea
 env
 
+#environments
+.venv/
+
+
 # other files
 *.pdf
