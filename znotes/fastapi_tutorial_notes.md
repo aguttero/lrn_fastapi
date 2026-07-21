@@ -8,7 +8,7 @@ Popular:
 2. Fast API Server - Backend logic
 3. dependencies:
   - Fast API
-  - Uvicorn
+  - Uvicorn -> Web Server
 
 Fast Dev and prototype:
 Fast API can also work as a full stack app
@@ -16,4 +16,15 @@ Fast API can also work as a full stack app
 ## installation PIP
 python3 -m venv .venv
 pip install fastapi
-pip install "uvicorn[standard]" -> production version
+pip install "uvicorn[standard]" -> web server production version
+
+## run server
+### uvicorn command
+uvicorn python_file:app --reload -> reload allows for refresh in code and auto reload of web server
+
+### fastapi prod and dev start:
+* Requires pip install "fastapi[standard]"
+1. Prod
+fastapi run python_file.py -> prod
+2. dev
+fastapi dev python_file.py -> dev
