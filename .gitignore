@@ -13,5 +13,6 @@ env
 .venv/
 
 
-# other files
+# content files
 *.pdf
+*.db

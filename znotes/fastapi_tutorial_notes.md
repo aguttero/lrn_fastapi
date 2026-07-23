@@ -35,3 +35,9 @@ fastapi dev python_file.py -> dev
 ## 3xx Redirection: Further action must be complete
 ## 4xx Client errors: An error was caused by the client
 ## 5xx Server errors: An error ocurred on the server
+
+# SQLA DB Setup
+## configuration
+1. Engine
+2. Base Class
+3. Models
