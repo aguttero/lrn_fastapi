@@ -28,3 +28,10 @@ uvicorn python_file:app --reload -> reload allows for refresh in code and auto r
 fastapi run python_file.py -> prod
 2. dev
 fastapi dev python_file.py -> dev
+
+# Standard HTTP Status Codes
+## 1xx Information Response: Request Processing
+## 2xx Success: Req Successfully complete
+## 3xx Redirection: Further action must be complete
+## 4xx Client errors: An error was caused by the client
+## 5xx Server errors: An error ocurred on the server
