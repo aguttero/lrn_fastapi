@@ -36,7 +36,16 @@ fastapi dev python_file.py -> dev
 ## 4xx Client errors: An error was caused by the client
 ## 5xx Server errors: An error ocurred on the server
 
-# SQLA DB Setup
+# SQLA 2 Tutorial DB Setup
+## 1. create engine
+from sqlalchemy import create_engine
+engine = create_engine("sqlite+pysqlite:///:memory:", echo=True)
+
+## 2. Use Session as connection model
+https://docs.sqlalchemy.org/en/20/changelog/migration_20.html#migration-20-query-usage
+
+
+# Sampple SQLA DB Setup
 ## Sync configuration 
 1. Declare Models
   from typing import List, Optional
@@ -94,3 +103,9 @@ Permite que el programa inicie una tarea larga y, en lugar de quedarse congelado
 * Asíncrono: Usas async def en tus rutas y AsyncSessionLocal(). Mientras la base de datos busca la información, el servidor FastAPI queda libre para recibir y procesar peticiones de otros usuarios.
 
 ¿Estás evaluando cuál de los dos enfoques elegir para la arquitectura de tu API actual? Cuéntame qué tipo de base de datos usarás y cuántos usuarios estimas que consumirán tu aplicación para ayudarte a decidir.
+
+# SQLA Return data: db.get() vs db.refresh():
+ db.get() vs db.refresh():The Big DifferenceWhile both can result in a SQL query, they serve opposite purposes:db.get() tries to avoid the database: It prefers to use the local memory cache to save time. It only hits the database if it absolutely has to.db.refresh() forces a database lookup: It completely ignores the local memory cache. It deliberately wipes out whatever is in your Python memory and pulls a fresh copy straight from the database columns.
+
+# SQLA Delete record
+To delete a record in SQLAlchemy V2, you have two primary methods: fetching the record first and deleting it via the session, or using the modern V2 bulk delete() statement
