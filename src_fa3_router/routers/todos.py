@@ -1,23 +1,13 @@
 from typing import Annotated
-import pydantic
+from pydantic import BaseModel, Field
 from sqlalchemy import select, update, delete
 from sqlalchemy.orm import Session
-from fastapi import FastAPI, Depends, HTTPException, Path
+from fastapi import APIRouter, Depends, HTTPException, Path
 from starlette import status
-from pydantic import BaseModel, Field
-import models
 from models import Todo
-from database import engine, SessionLocal
+from database import SessionLocal
 
-
-app = FastAPI()
-
-# --- CREATE SQLITE DB
-models.Base.metadata.create_all(bind=engine)
-
-# --- Include routes
-from routers import auth
-app.include_router(auth.router)
+router = APIRouter()
 
 def get_db():
     db = SessionLocal()
@@ -25,6 +15,7 @@ def get_db():
         yield db
     finally:
         db.close()
+
 
 db_dependency = Annotated[Session, Depends(get_db)]
 
@@ -35,7 +26,7 @@ class TodoRequest(BaseModel):
     complete: bool
 
 
-@app.get("/",  status_code=status.HTTP_200_OK )
+@router.get("/",  status_code=status.HTTP_200_OK )
 async def read_all(db: db_dependency):
     # SQLA V1
     # return db.query(Todo).all()
@@ -44,11 +35,11 @@ async def read_all(db: db_dependency):
     result = db.scalars(stmt).all()
     return result
 
-@app.get("/pol")
+@router.get("/pol")
 async def pol():
     return  {"message": "pol ok!"}
 
-@app.get ("/todo/{todo_id}", status_code=status.HTTP_200_OK )
+@router.get ("/todo/{todo_id}", status_code=status.HTTP_200_OK )
 async def read_todo_by_id(db: db_dependency, todo_id:int = Path(gt=0)):
     stmt = select(Todo).where(Todo.id == todo_id)
     found_record = db.scalar(stmt)
@@ -59,7 +50,7 @@ async def read_todo_by_id(db: db_dependency, todo_id:int = Path(gt=0)):
 
     return found_record
 
-@app.post ("/todo", status_code=status.HTTP_201_CREATED)
+@router.post ("/todo", status_code=status.HTTP_201_CREATED)
 async def create_todo_item (db: db_dependency, todo_request: TodoRequest):
     # Pydantic V1
     # new_record = Todo(**todo_request.dict())
@@ -71,7 +62,7 @@ async def create_todo_item (db: db_dependency, todo_request: TodoRequest):
     db.commit()
 
 # SQLA BULK UPDATE:
-@app.put ("/todobulk/{todo_id}", status_code=status.HTTP_200_OK)
+@router.put ("/todobulk/{todo_id}", status_code=status.HTTP_200_OK)
 async def bulk_update_todo_by_id (db: db_dependency, todo_request: TodoRequest, todo_id: int = Path(gt=0)):
     # Convert incoming data to dictionary
     update_dict = todo_request.model_dump()
@@ -94,7 +85,7 @@ async def bulk_update_todo_by_id (db: db_dependency, todo_request: TodoRequest, 
 
 # SQLA MERGE UPDATE:
 # Inserts if record not found
-@app.put("/todomerge/{todo_id}", status_code=status.HTTP_202_ACCEPTED)
+@router.put("/todomerge/{todo_id}", status_code=status.HTTP_202_ACCEPTED)
 async def merge_update_todo_by_id(todo_request: TodoRequest, db: db_dependency,  todo_id: int = Path(gt=0)):
     # 1. Convert to dict and explicitly inject the URL's todo_id into it
     update_dict = todo_request.model_dump()
@@ -117,7 +108,7 @@ async def merge_update_todo_by_id(todo_request: TodoRequest, db: db_dependency, 
     return merged_todo
 
 # SQLA BULK DELETE
-@app.delete("/bkdeltodo/{todo_id}", status_code=status.HTTP_202_ACCEPTED)
+@router.delete("/bkdeltodo/{todo_id}", status_code=status.HTTP_202_ACCEPTED)
 async def bulk_delete_todo_by_id (db: db_dependency, todo_id:int = Path(gt=0)):
     stmt = delete(Todo).where(Todo.id == todo_id)
     result = db.execute(stmt)
@@ -131,7 +122,7 @@ async def bulk_delete_todo_by_id (db: db_dependency, todo_id:int = Path(gt=0)):
     return {"message": "Item deleted succesfully"}
 
 # SQLA FETCH and DELETE
-@app.delete("/fetchdeltodo/{todo_id}", status_code=status.HTTP_202_ACCEPTED)
+@router.delete("/fetchdeltodo/{todo_id}", status_code=status.HTTP_202_ACCEPTED)
 async def fetch_delete_todo_by_id (db: db_dependency, todo_id:int = Path(gt=0)):
 
     # Fetch record
