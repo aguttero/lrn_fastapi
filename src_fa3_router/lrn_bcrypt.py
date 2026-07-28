@@ -1,6 +1,6 @@
 import bcrypt
 
-sample_password = "_test_1234"
+sample_password = b"test_1234"
 print (f"Sample pwd= {sample_password}")
 print (f"bin first char ={sample_password[0]} ")
 print ("* - * - *")
@@ -12,6 +12,9 @@ hashed= b'$2b$12$CR75YN6O8BHRUD5uSTvraeqRnqHPAN.9ncRY.OyJdphN5hJxhYBke'
 
 print (f"hashed pwd var type= {type(hashed)}")
 print (f"hashed pwd= {hashed}")
+decoded_hash = hashed.decode('utf-8')
+print (f"str hashed pwd= {decoded_hash}")
+
 
  # Check that a unhashed password matches one that has previously been hashed
 if bcrypt.checkpw(sample_password, hashed):

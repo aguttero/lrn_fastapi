@@ -109,3 +109,42 @@ Permite que el programa inicie una tarea larga y, en lugar de quedarse congelado
 
 # SQLA Delete record
 To delete a record in SQLAlchemy V2, you have two primary methods: fetching the record first and deleting it via the session, or using the modern V2 bulk delete() statement
+
+# Password handling
+## bcrypt
+
+Starting in bcrypt 5.0.0, the library officially added native support for Python 3.14 and free-threaded (GIL-less) Python 3.14. This version also introduces strict error handling that blocks a silent security flaw.
+bcrypt builds rely on a Rust-based cryptographic engine backend under the hood
+
+In Python 3.14, you should call the library natively. Do not use passlib or other wrappers, which are completely broken on modern bcrypt versions
+
+## Critical 3.14 Upgrades & Best Practices
+
+* 
+* Handling the 72-Byte Limit Explicitly: In older versions of bcrypt, text longer than 72 bytes was silently truncated. Starting in modern versions, passing a password longer than 72 bytes raises a ValueError. If your users choose massive passphrases, you must pre-hash the password using hashlib.sha256 before feeding it to bcrypt. [1] 
+* Work Factor (Rounds): The default is 12. If your server runs on strong, dedicated modern hardware, test if you can bump this to 13 or 14. Your goal is to target a hashing time of roughly 250ms to 500ms per login request to keep things snappy but secure. [7, 8, 9, 10, 11] 
+* Free-Threaded Python 3.14: If you are experimenting with Python 3.14's experimental free-threaded binaries (concurrency without the Global Interpreter Lock), bcrypt >= 5.0.0 ships with full, stable wheel support explicitly compiled to avoid concurrency crashes. [1, 12] 
+
+## sample code
+```python
+import bcrypt
+
+def hash_user_password(plain_password: str) -> str:
+    # 1. Encode text to bytes (bcrypt strictly requires byte strings)
+    password_bytes = plain_password.encode('utf-8')
+    
+    # 2. Generate a salt with a modern cost factor (12 is the production standard)
+    salt = bcrypt.gensalt(rounds=12)
+    
+    # 3. Hash the password and decode the resulting bytes to a UTF-8 string for DB storage
+    hashed_bytes = bcrypt.hashpw(password_bytes, salt)
+    return hashed_bytes.decode('utf-8')
+
+def verify_user_password(plain_password: str, stored_hash: str) -> bool:
+    # Convert string inputs back to bytes for verification
+    password_bytes = plain_password.encode('utf-8')
+    hash_bytes = stored_hash.encode('utf-8')
+    
+    # Securely verify (avoids timing attacks)
+    return bcrypt.checkpw(password_bytes, hash_bytes)
+```

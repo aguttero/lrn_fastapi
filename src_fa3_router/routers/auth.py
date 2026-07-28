@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
 from models import User
+import bcrypt
 
 
 # --- ROUTE from MAIN FastAPI APP
@@ -14,6 +15,12 @@ class CreateUserRequest(BaseModel):
     last_name : str
     password : str
     role : str
+
+
+def hash_pwd (plain_pwd: str):
+    pwd_bytes = plan_pwd.encode('utf-8')
+    salt = bcrypt.gensalt(rounds=4)
+    hashed_bytes = bcrypt.hashpw(pwd_bytes, salt)
 
 
 @router.post("/auth")
