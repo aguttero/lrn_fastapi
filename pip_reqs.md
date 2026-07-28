@@ -18,3 +18,7 @@ Argon2id
 ## token Oauth
 python-multipart -> password request form
 from fastapi.security import OAuth2PasswordRequestForm
+
+## JWT
+pyjwt
+https://pyjwt.readthedocs.io/en/stable/
