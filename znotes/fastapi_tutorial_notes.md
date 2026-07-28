@@ -15,7 +15,7 @@ Fast API can also work as a full stack app
 
 ## installation PIP
 python3 -m venv .venv
-pip install fastapi
+pip install fastapi ?standard? for production?
 pip install "uvicorn[standard]" -> web server production version
 
 ## run server
