@@ -272,6 +272,10 @@ Si usas una instalación mínima, debes agregarlo manualmente con pip install py
 ## JWT en python
 La forma moderna, oficial y recomendada por la documentación de FastAPI para generar JSON Web Tokens (JWT) en Python es utilizando la librería PyJWT.Si vienes de tutoriales antiguos (anteriores a 2024), notarás que casi todos usaban una librería llamada python-jose. Sin embargo, python-jose quedó completamente obsoleta y abandonada, por lo que todo el ecosistema moderno se migró a PyJWT
 
+## pyjwt setup
+pip install pyjwt
+https://pyjwt.readthedocs.io/en/stable/
+
 ## JWT Code example:
 ```python
 import jwt
