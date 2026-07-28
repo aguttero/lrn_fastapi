@@ -110,6 +110,66 @@ Permite que el programa inicie una tarea larga y, en lugar de quedarse congelado
 # SQLA Delete record
 To delete a record in SQLAlchemy V2, you have two primary methods: fetching the record first and deleting it via the session, or using the modern V2 bulk delete() statement
 
+# SQLA Scalar, Scalars, one, all, etc
+
+In SQLAlchemy V2, choosing between scalar(), scalars(), and scalar_one() depends entirely on how many rows you expect the database to return, and how you want your app to handle missing or duplicate data.
+First, understand what "scalar" means: It tells SQLAlchemy to unpack the raw database row tuple and give you the individual Python object (like a Todo instance) directly.
+Here is the exact guide on when to use each method when running a select().where() query:
+------------------------------
+## 1. db.scalars(statement)
+
+* What it returns: An iterable collection (a stream of multiple objects).
+* When to use it: When your query can return zero, one, or many rows. This is your default choice for fetching lists.
+* Example: Getting all completed todos. [1, 2, 3, 4] 
+
+statement = select(Todo).where(Todo.completed == True)results = db.scalars(statement).all()  # Returns a List[Todo] (could be empty)
+
+## 2. db.scalar(statement)
+
+* What it returns: A single object, or None.
+* When to use it: When you are looking for a specific item that might not exist, or you only care about the first match. If the database finds multiple rows, it safely returns the first one without crashing.
+* Example: Fetching a user by email, or a todo by ID where you want to handle a missing item manually. [5, 6, 7, 8] 
+
+statement = select(Todo).where(Todo.id == todo_id)todo = db.scalar(statement)  # Returns a Todo instance OR None
+if not todo:
+    raise HTTPException(status_code=404)
+
+## 3. db.scalars(statement).one()
+
+* What it returns: A single object. [9] 
+* When to use it: When the item must exist, and it is a critical error if it doesn't. [10] 
+* The Catch:
+* If 0 rows are found, it raises a NoResultFound exception.
+   * If 2 or more rows are found, it raises a MultipleResultsFound exception. [11, 12] 
+* Example: Internal system lookups where data integrity guarantees the row is there.
+
+try:
+    statement = select(Todo).where(Todo.id == todo_id)
+    todo = db.scalars(statement).one()except NoResultFound:
+    print("This should never happen based on our database logic!")
+
+## 4. db.scalars(statement).one_or_none()
+
+* What it returns: A single object, or None.
+* When to use it: When a duplicate row is a severe database error, but a missing row is completely normal.
+* The Catch: It returns None safely if 0 rows are found, but it will still raise a MultipleResultsFound exception if more than one row matches your criteria.
+* Example: Checking if a unique username is taken during registration. [13, 14, 15, 16] 
+
+statement = select(User).where(User.username == "john_doe")user = db.scalars(statement).one_or_none()
+if user:
+    raise HTTPException(status_code=400, detail="Username already taken")
+
+------------------------------
+## Summary Cheat Sheet
+
+| Method | 0 Rows Found | 1 Row Found | 2+ Rows Found | Best Use Case |
+|---|---|---|---|---|
+| db.scalars(...).all() | Returns [] | Returns [Obj] | Returns [Obj, Obj] | Fetching lists or search results. |
+| db.scalar(...) | Returns None | Returns Obj | Returns First Obj (ignores rest) | Standard FastAPI GET by ID lookups. |
+| db.scalars(...).one() | ❌ Crashes | Returns Obj | ❌ Crashes | Strict lookups where data must exist. |
+| db.scalars(...).one_or_none() | Returns None | Returns Obj | ❌ Crashes | Checking unique constraints (e.g., registration). |
+
+
 # Password handling
 ## bcrypt
 
@@ -148,3 +208,102 @@ def verify_user_password(plain_password: str, stored_hash: str) -> bool:
     # Securely verify (avoids timing attacks)
     return bcrypt.checkpw(password_bytes, hash_bytes)
 ```
+
+## Cantidad de rounds de Salt
+El "Punto Caramelo" (Sweet Spot)El estándar de la industria busca que el proceso de hash tarde entre 100 y 300 milisegundos. Es un pestañeo para un humano, pero una eternidad para una computadora que intenta hackearte.A día de hoy, los valores recomendados son:
+* rounds=12: Es el valor por defecto actual en la mayoría de librerías modernas y el balance ideal para servidores web estándar.
+* rounds=13 o 14: Ideal si manejas datos extremadamente sensibles (finanzas, salud) y tienes servidores potentes.
+
+## Ejemplo para medir tiempo en python
+Puedes usar este pequeño truco de código para ver cuánto tarda tu propia computadora en procesar diferentes rounds:
+
+```python
+import bcrypt
+import time
+
+password = b"super_secret"
+
+for r in:
+    inicio = time.time()
+    bcrypt.hashpw(password, bcrypt.gensalt(rounds=r))
+    fin = time.time()
+    print(f"Rounds {r} tardó: {fin - inicio:.4f} segundos")
+```
+## Oauth2
+pip install python-multipart -> password request form
+from fastapi.security import OAuth2PasswordRequestForm
+la especificación oficial de OAuth2 exige estrictamente que las credenciales de inicio de sesión (username y password) se envíen codificadas como datos de formulario (application/x-www-form-urlencoded), en lugar de un objeto JSON tradicional. Como Python no puede procesar formularios web de forma nativa, FastAPI necesita la librería externa python-multipart en el ecosistema para interpretar esa petición.
+
+```python
+from typing import Annotated
+from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm
+
+app = FastAPI()
+
+@app.post("/token")
+async def login(
+    # 'Annotated' junto con 'Depends' es la sintaxis moderna de FastAPI
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
+):
+    # El formulario te provee los campos limpios de forma automática
+    usuario = form_data.username
+    password_plana = form_data.password
+
+    # Aquí agregarías tu lógica de negocio (buscar en DB y verificar hash con bcrypt)
+    if usuario != "admin" or password_plana != "secret":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, 
+            detail="Usuario o contraseña incorrectos"
+        )
+        
+    # Retornas el token en el formato JSON que exige la especificación OAuth2
+    return {"access_token": "tu_jwt_token_generado", "token_type": "bearer"}
+```
+
+### Resumen para tu perspectiva de Negocio
+* Instalación Si instalas FastAPI mediante el comando moderno de entornos virtuales (uv add "fastapi[standard]"), el módulo python-multipart ya viene incluido automáticamente. 
+Si usas una instalación mínima, debes agregarlo manualmente con pip install python-multipart.
+* Documentación Interactiva Avanzada: Al usar OAuth2PasswordRequestForm, FastAPI habilita de forma automática el botón "Authorize" con el candado en la interfaz de Swagger UI (/docs). Esto permite a tus desarrolladores o clientes probar las rutas protegidas directamente desde el navegador de manera muy profesional.
+* Rigidez del Estándar: Aunque como desarrollador junior de Python prefieras enviar JSON (porque es más cómodo de estructurar con Pydantic), romperías la compatibilidad con herramientas universales de autenticación si no utilizas el formato de formulario (multipart/form-data o x-www-form-urlencoded)
+
+# JWT Tokens
+## jwt decoder: jwt.io
+## JWT en python
+La forma moderna, oficial y recomendada por la documentación de FastAPI para generar JSON Web Tokens (JWT) en Python es utilizando la librería PyJWT.Si vienes de tutoriales antiguos (anteriores a 2024), notarás que casi todos usaban una librería llamada python-jose. Sin embargo, python-jose quedó completamente obsoleta y abandonada, por lo que todo el ecosistema moderno se migró a PyJWT
+
+## JWT Code example:
+```python
+import jwt
+from datetime import datetime, timedelta, timezone
+from typing import Dict, Any
+
+# 1. Parámetros de configuración del negocio
+SECRET_KEY = "tu_clave_secreta_super_segura_y_larga" # Guardar en variables de entorno
+ALGORITHM = "HS256" # El estándar simétrico más común
+ACCESS_TOKEN_EXPIRE_MINUTES = 30 
+
+def create_access_token(data: dict) -> str:
+    """Genera un token JWT firmado de forma moderna."""
+    # Copiamos los datos para no modificar el diccionario original
+    payload = data.copy()
+    
+    # IMPORTANTE: Definir la expiración usando zona horaria UTC explícita (estándar moderno)
+    expiracion = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    
+    # Añadimos los 'claims' (propiedades estándar del protocolo JWT)
+    payload.update({
+        "exp": expiracion,                 # Expiración (Expiration time)
+        "iat": datetime.now(timezone.utc)  # Cuándo fue creado (Issued at)
+    })
+    
+    # Generamos y firmamos el token usando PyJWT
+    token_firmado = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+    
+    return token_firmado
+```
+## Conceptos Clave para el Negocio y Arquitectura
+ hay tres detalles cruciales que diferencian a un desarrollador junior de uno que entiende la arquitectura del negocio:
+ * Sustitución de Librería: Asegúrate de instalar la correcta: pip install pyjwt. En tu código se importa simplemente como import jwt.
+ * Timezones Explícitas: El uso de datetime.utcnow() fue marcado como obsoleto en las versiones recientes de Python. La forma moderna obliga a usar datetime.now(timezone.utc) para evitar errores de desincronización de horas si tu servidor está en un país y tu base de datos en otro.
+ * El contenido del Payload: Al generar el token en la ruta /token que construimos antes, lo ideal es pasar únicamente datos de identificación que no cambien seguido (como el ID del usuario o su correo). Nunca pongas contraseñas ni datos sensibles dentro del JWT, ya que el token viaja cifrado pero es fácilmente legible (decodificable) por cualquiera que lo intercepte; la firma solo garantiza que nadie lo haya alterado.

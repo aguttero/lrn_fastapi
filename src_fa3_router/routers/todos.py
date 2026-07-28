@@ -61,6 +61,11 @@ async def create_todo_item (db: db_dependency, todo_request: TodoRequest):
     db.add(new_record)
     db.commit()
 
+    # --- DB.Refresh fuerza un nuevo select en la DB
+    # db.refresh(new_record)
+    # print (f"new_record= {new_record}")
+    # return new_record
+
 # SQLA BULK UPDATE:
 @router.put ("/todobulk/{todo_id}", status_code=status.HTTP_200_OK)
 async def bulk_update_todo_by_id (db: db_dependency, todo_request: TodoRequest, todo_id: int = Path(gt=0)):
