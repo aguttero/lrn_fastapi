@@ -2,10 +2,11 @@ from typing import Annotated
 from pydantic import BaseModel, Field
 from sqlalchemy import select, update, delete
 from sqlalchemy.orm import Session
-from fastapi import APIRouter, Depends, HTTPException, Path
-from starlette import status
+from fastapi import APIRouter, Depends, HTTPException, Path, status
+# from starlette import status
 from models import Todo
 from database import SessionLocal
+from .auth import get_current_user
 
 router = APIRouter()
 
@@ -16,8 +17,9 @@ def get_db():
     finally:
         db.close()
 
-
+# Dependenci Config
 db_dependency = Annotated[Session, Depends(get_db)]
+user_dependency = Annotated[dict, Depends(get_current_user)] # add from .auth import get_current_user
 
 class TodoRequest(BaseModel):
     title: str = Field (min_length=3)
@@ -51,12 +53,14 @@ async def read_todo_by_id(db: db_dependency, todo_id:int = Path(gt=0)):
     return found_record
 
 @router.post ("/todo", status_code=status.HTTP_201_CREATED)
-async def create_todo_item (db: db_dependency, todo_request: TodoRequest):
+async def create_todo_item (user: user_dependency, db: db_dependency, todo_request: TodoRequest):
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Authentication Failed')
+
     # Pydantic V1
     # new_record = Todo(**todo_request.dict())
-
     # Pydantic V2
-    new_record = Todo(**todo_request.model_dump())
+    new_record = Todo(**todo_request.model_dump(), owner_id=user.get('id'))
 
     db.add(new_record)
     db.commit()

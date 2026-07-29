@@ -420,7 +420,7 @@ jwt.decode(encoded_jwt, "secret", algorithms=["HS256"])
 ```
 https://pyjwt.readthedocs.io/en/stable/usage.html
 
-#### Gemini
+#### Gemini 1
 ```python
 import jwt
 from datetime import datetime, timedelta, timezone
@@ -450,6 +450,97 @@ def create_access_token(data: dict) -> str:
     
     return token_firmado
 ```
+
+#### Gemini 2
+```python
+import jwt
+from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from pydantic import BaseModel
+
+app = FastAPI()
+
+# 1. Instanciamos el esquema de seguridad nativo
+security_scheme = HTTPBearer()
+
+SECRET_KEY = "tu_clave_secreta_super_segura"
+ALGORITHM = "HS256"
+
+class UserTokenData(BaseModel):
+    username: str
+
+# 2. Creamos la función de dependencia para validar el token
+def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security_scheme)):
+    token = credentials.credentials # Extrae el string del token
+    try:
+        # Validamos la firma y expiración de forma criptográfica usando PyJWT
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token no contiene el usuario (sub claim)",
+            )
+        return UserTokenData(username=username)
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="El token ha expirado")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Token inválido")
+
+# 3. Protegemos la ruta inyectando la dependencia
+@app.get("/users/me")
+def read_current_user(current_user: UserTokenData = Depends(get_current_user)):
+    return {"message": f"Hola, {current_user.username}. Tienes acceso."}
+```
+
+### PyJWT Exception handling
+The modern equivalent of catching JWTError from python-jose depends on whether you want to catch all token failures or specifically isolate expiration versus malformed tokens.
+
+In PyJWT, the modern approach uses jwt.exceptions.InvalidTokenError as the generic replacement for JWTError, alongside more specialized classes.
+
+1. The Direct Replacement (Catch-All)To catch any validation failure—such as an invalid signature, malformed token structure, or an expired timestamp—use jwt.exceptions.InvalidTokenError
+
+```python
+import jwt
+
+try:
+    payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+except jwt.exceptions.InvalidTokenError:
+    # This catches expired tokens, bad signatures, and malformed structures
+    raise HTTPException(status_code=401, detail="Invalid or expired token")
+```
+
+2. The Granular Approach (Best Practice)In modern API development, you usually want to give the client explicit feedback if a token is simply expired (so they know to use a refresh token) versus when a token is completely corrupted or forged.You can chain PyJWT's granular exceptions like this:
+
+```python
+import jwt
+from fastapi import HTTPException, status
+
+try:
+    payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+    
+except jwt.exceptions.ExpiredSignatureError:
+    # Token is valid but past its 'exp' claim timestamp
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED, 
+        detail="Token has expired"
+    )
+    
+except jwt.exceptions.InvalidTokenError:
+    # Catches DecodeError, InvalidSignatureError, etc.
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED, 
+        detail="Invalid token credentials"
+    )
+```
+
+####PyJWT Exception Mapping Summary
+Old python-jose Class | Modern PyJWT Equivalent | ReasonRaised
+JWTError | jwt.exceptions.InvalidTokenError | Base class for decoding failures.
+ExpiredSignatureError | jwt.exceptions.ExpiredSignatureError | Time limits (exp) exceeded.
+JWTClaimsError | jwt.exceptions.InvalidIssuerError / InvalidAudienceError | Mismatch on iss or aud verification.
+
+____
 ## Conceptos Clave para el Negocio y Arquitectura
  hay tres detalles cruciales que diferencian a un desarrollador junior de uno que entiende la arquitectura del negocio:
  * Sustitución de Librería: Asegúrate de instalar la correcta: pip install pyjwt. En tu código se importa simplemente como import jwt.

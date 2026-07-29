@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from models import User
 import bcrypt
@@ -6,20 +6,25 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from database import SessionLocal
 from typing import Annotated
-from starlette import status
-from fastapi.security import OAuth2PasswordRequestForm
+# from starlette import status
+from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 import jwt
 from datetime import timedelta, datetime, timezone
 
 # --- ROUTE from MAIN FastAPI APP
 # remember to include this module in main.py
-router = APIRouter()
+router = APIRouter(prefix='/auth', tags=['auth'])
 
 # JWT Config
 # Generated with
 # openssl rand -hex 32
 SECRET_KEY = "3ad1d79be2cf2be4f56a15be94eb4c6e429ce8e9878fa6807908ac30a0df731d"
 ALGORITHM = "HS256"
+
+# Oauth Config
+# oauth2_bearer = OAuth2PasswordBearer(tokenUrl="token") -> calls the api endpoint
+oauth2_bearer = OAuth2PasswordBearer(tokenUrl="auth/token") #added auth/ after adding prefix setting to router
+
 
 # --- Pydantic class defintion
 class CreateUserRequest(BaseModel):
@@ -46,6 +51,12 @@ def get_db():
 
 db_dependency = Annotated[Session, Depends(get_db)]
 
+def hash_pwd (plain_pwd: str) -> str:
+    pwd_bytes = plain_pwd.encode('utf-8')
+    salt = bcrypt.gensalt(rounds=4)
+    hashed_bytes = bcrypt.hashpw(pwd_bytes, salt)
+    return hashed_bytes.decode('utf-8')
+
 def authenticate_user(username: str, password: str, db): #db -> Session already created inside api endpoint
     # fetch user
     stmt = select(User).where(User.username == username)
@@ -66,14 +77,23 @@ def create_access_token(username: str, user_id: int, expires_delta: timedelta):
     encode.update({'exp': expires})
     return jwt.encode(encode, SECRET_KEY, algorithm=ALGORITHM)
 
+async def get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get('sub')
+        user_id: int = payload.get('id')
+        if username is None or user_id is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Could not validate user')
 
-def hash_pwd (plain_pwd: str) -> str:
-    pwd_bytes = plain_pwd.encode('utf-8')
-    salt = bcrypt.gensalt(rounds=4)
-    hashed_bytes = bcrypt.hashpw(pwd_bytes, salt)
-    return hashed_bytes.decode('utf-8')
+        return {'username': username, 'id': user_id}
+    except jwt.exceptions.InvalidTokenError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Could not validate user')
 
-@router.post("/auth", status_code=status.HTTP_201_CREATED)
+
+
+
+# @router.post("/auth", status_code=status.HTTP_201_CREATED) # removed /auth after adding prefix setting to router, to avoid the /auth/auth
+@router.post("/", status_code=status.HTTP_201_CREATED)
 async def create_user(db: db_dependency, create_user_request: CreateUserRequest):
     # No se puede usar el truco de User (**create_user_request.model_dump()) porque en el dict tengo 'password' y en DB model 'hashed_password'
     new_user_record = User(
@@ -105,6 +125,7 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
     user = authenticate_user(form_data.username, form_data.password, db)
     print (f"User={user}")
     if not user:
-        return 'Failed Authentication'
+        # return 'Failed Authentication'
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Could not validate user')
     token = create_access_token(user.username, user.id, timedelta(minutes=20))
     return {'access_token': token, 'token_type': 'bearer'}
