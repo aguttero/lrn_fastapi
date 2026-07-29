@@ -10,7 +10,7 @@ class User(Base):
 
     id: Mapped [int] = mapped_column(primary_key=True)
     email: Mapped[str] = mapped_column(unique=True, index=True)
-    username: Mapped[str] = mapped_column(unique=True, index=True)
+    username: Mapped[str] = mapped_column(unique=True, index=True) # cambiar a user_name
     first_name : Mapped [Optional[str]]
     last_name : Mapped [Optional[str]]
     hashed_password : Mapped [Optional[str]]

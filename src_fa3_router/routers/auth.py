@@ -8,11 +8,20 @@ from database import SessionLocal
 from typing import Annotated
 from starlette import status
 from fastapi.security import OAuth2PasswordRequestForm
+import jwt
+from datetime import timedelta, datetime, timezone
 
 # --- ROUTE from MAIN FastAPI APP
 # remember to include this module in main.py
 router = APIRouter()
 
+# JWT Config
+# Generated with
+# openssl rand -hex 32
+SECRET_KEY = "3ad1d79be2cf2be4f56a15be94eb4c6e429ce8e9878fa6807908ac30a0df731d"
+ALGORITHM = "HS256"
+
+# --- Pydantic class defintion
 class CreateUserRequest(BaseModel):
     email: str
     username: str
@@ -20,6 +29,11 @@ class CreateUserRequest(BaseModel):
     last_name : str
     password : str
     role : str
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
 
 # --- DB session definition
 def get_db():
@@ -41,10 +55,16 @@ def authenticate_user(username: str, password: str, db): #db -> Session already 
         return False
     pwd_bytes = password.encode('utf-8')
     hash_bytes = found_user_record.hashed_password.encode('utf-8')
-    # if not bcrypt.checkpw(pwd_bytes, hash_bytes):
-        # return False
+    if not bcrypt.checkpw(pwd_bytes, hash_bytes):
+        return False
     # return True
-    return bcrypt.checkpw(pwd_bytes, hash_bytes) # Is the same as the 3 commented lines above
+    return found_user_record
+
+def create_access_token(username: str, user_id: int, expires_delta: timedelta):
+    encode = {'sub': username, 'id': user_id}
+    expires = datetime.now(timezone.utc) + expires_delta
+    encode.update({'exp': expires})
+    return jwt.encode(encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
 def hash_pwd (plain_pwd: str) -> str:
@@ -74,7 +94,7 @@ async def create_user(db: db_dependency, create_user_request: CreateUserRequest)
     # return {"user": "authenticated"}
     return new_user_record
 
-@router.post("/token", status_code=status.HTTP_200_OK)
+@router.post("/token", response_model=Token)
 async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: db_dependency):
     # TEST CODE
     user = form_data.username
@@ -83,6 +103,8 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
     print(f"pwd= {plain_pwd}")
     # END TEST CODE
     user = authenticate_user(form_data.username, form_data.password, db)
+    print (f"User={user}")
     if not user:
         return 'Failed Authentication'
-    return 'Successful Authentication'
+    token = create_access_token(user.username, user.id, timedelta(minutes=20))
+    return {'access_token': token, 'token_type': 'bearer'}
