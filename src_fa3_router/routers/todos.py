@@ -29,11 +29,14 @@ class TodoRequest(BaseModel):
 
 
 @router.get("/",  status_code=status.HTTP_200_OK )
-async def read_all(db: db_dependency):
+async def read_all(user: user_dependency, db: db_dependency):
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Authentication Failed')
     # SQLA V1
     # return db.query(Todo).all()
     # SQLA V2
-    stmt = select(Todo)
+    # stmt = select(Todo)
+    stmt = select(Todo).where(Todo.owner_id == user.get('id'))
     result = db.scalars(stmt).all()
     return result
 
@@ -42,8 +45,11 @@ async def pol():
     return  {"message": "pol ok!"}
 
 @router.get ("/todo/{todo_id}", status_code=status.HTTP_200_OK )
-async def read_todo_by_id(db: db_dependency, todo_id:int = Path(gt=0)):
-    stmt = select(Todo).where(Todo.id == todo_id)
+async def read_todo_by_id(user: user_dependency ,db: db_dependency, todo_id:int = Path(gt=0)):
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Authentication Failed')
+
+    stmt = select(Todo).where(Todo.id == todo_id, Todo.owner_id == user.get('id'))
     found_record = db.scalar(stmt)
 
     # Exception Handling:
