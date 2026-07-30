@@ -27,7 +27,12 @@ class TodoRequest(BaseModel):
     priority: int = Field (gt=0, lt=6)
     complete: bool
 
+# Fetch Proof of Life
+@router.get("/pol")
+async def pol():
+    return  {"message": "pol ok!"}
 
+# Fetch all items by authorized user
 @router.get("/",  status_code=status.HTTP_200_OK )
 async def read_all(user: user_dependency, db: db_dependency):
     if user is None:
@@ -40,10 +45,7 @@ async def read_all(user: user_dependency, db: db_dependency):
     result = db.scalars(stmt).all()
     return result
 
-@router.get("/pol")
-async def pol():
-    return  {"message": "pol ok!"}
-
+# Fetch Item by id
 @router.get ("/todo/{todo_id}", status_code=status.HTTP_200_OK )
 async def read_todo_by_id(user: user_dependency ,db: db_dependency, todo_id:int = Path(gt=0)):
     if user is None:
@@ -58,6 +60,7 @@ async def read_todo_by_id(user: user_dependency ,db: db_dependency, todo_id:int 
 
     return found_record
 
+# Create item
 @router.post ("/todo", status_code=status.HTTP_201_CREATED)
 async def create_todo_item (user: user_dependency, db: db_dependency, todo_request: TodoRequest):
     if user is None:
@@ -71,19 +74,23 @@ async def create_todo_item (user: user_dependency, db: db_dependency, todo_reque
     db.add(new_record)
     db.commit()
 
-    # --- DB.Refresh fuerza un nuevo select en la DB
+    # --- DB.Refresh fuerza un nuevo select en la DB -> para devolver la data en el return a FastAPI
     # db.refresh(new_record)
     # print (f"new_record= {new_record}")
     # return new_record
 
+# Update Item with user authorzation
 # SQLA BULK UPDATE:
 @router.put ("/todobulk/{todo_id}", status_code=status.HTTP_200_OK)
-async def bulk_update_todo_by_id (db: db_dependency, todo_request: TodoRequest, todo_id: int = Path(gt=0)):
+async def bulk_update_todo_by_id (user: user_dependency, db: db_dependency, todo_request: TodoRequest, todo_id: int = Path(gt=0)):
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Authentication Failed')
+
     # Convert incoming data to dictionary
     update_dict = todo_request.model_dump()
 
     # Build and execute the V2 update statement
-    stmt = (update(Todo).where(Todo.id == todo_id).values(**update_dict))
+    stmt = (update(Todo).where(Todo.id == todo_id, Todo.owner_id == user.get('id')).values(**update_dict))
 
     result = db.execute(stmt)
     db.commit()
@@ -93,15 +100,18 @@ async def bulk_update_todo_by_id (db: db_dependency, todo_request: TodoRequest, 
     if result.rowcount == 0:
         raise HTTPException (status_code=404, detail="Item not found")
 
-    # Return the updated record - C
-    ret_txt = db.get(Todo, todo_id)
-    print (f"bulk update return= {ret_txt}")
-    return ret_txt
+    # Return the updated record - Consumes a select transaction
+    # ret_txt = db.get(Todo, todo_id)
+    # print (f"bulk update return= {ret_txt}")
+    #return ret_txt
+    return result # para que pase data significativa hay que usar RETURNING en SQLA STMT
 
+# Update V2 with user Authoriztion - PENDING
 # SQLA MERGE UPDATE:
 # Inserts if record not found
 @router.put("/todomerge/{todo_id}", status_code=status.HTTP_202_ACCEPTED)
 async def merge_update_todo_by_id(todo_request: TodoRequest, db: db_dependency,  todo_id: int = Path(gt=0)):
+
     # 1. Convert to dict and explicitly inject the URL's todo_id into it
     update_dict = todo_request.model_dump()
     update_dict["id"] = todo_id  # Ensures it targets the correct PK
@@ -122,10 +132,14 @@ async def merge_update_todo_by_id(todo_request: TodoRequest, db: db_dependency, 
     db.refresh(merged_todo)
     return merged_todo
 
-# SQLA BULK DELETE
-@router.delete("/bkdeltodo/{todo_id}", status_code=status.HTTP_202_ACCEPTED)
-async def bulk_delete_todo_by_id (db: db_dependency, todo_id:int = Path(gt=0)):
-    stmt = delete(Todo).where(Todo.id == todo_id)
+# SQLA BULK DELETE with user authorization
+@router.delete("/bulkdeltodo/{todo_id}", status_code=status.HTTP_202_ACCEPTED)
+async def bulk_delete_todo_by_id (user: user_dependency, db: db_dependency, todo_id:int = Path(gt=0)):
+
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Authentication Failed')
+
+    stmt = delete(Todo).where(Todo.id == todo_id, Todo.owner_id == user.get('id'))
     result = db.execute(stmt)
     print(f"Bulk Delete Result= {result} ")
     db.commit()
