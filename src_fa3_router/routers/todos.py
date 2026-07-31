@@ -132,6 +132,29 @@ async def merge_update_todo_by_id(todo_request: TodoRequest, db: db_dependency, 
     db.refresh(merged_todo)
     return merged_todo
 
+
+# Update V3 - Only one field, without previous fetch
+# Gemini Sample Code:
+
+async def update_sample(todo_request: TodoRequest, db: db_dependency, todo_id: int = Path (gt=0)):
+    stmt = (
+        update(Todo)
+        .where(Todo.id == todo_id)
+        .values(complete = todo_request.complete)  # <--- Solo modificas este campo
+    )
+
+    # 2. Ejecutar la sentencia
+    result = db.execute(stmt)
+
+    # 3. Validar si el registro existía (opcional pero recomendado)
+    if result.rowcount == 0:
+        return {"error": "Item no encontrado"}
+
+    # 4. Confirmar la transacción
+    db.commit()
+
+    return {"status": "success", "message": "Teléfono actualizado"}
+
 # SQLA BULK DELETE with user authorization
 @router.delete("/bulkdeltodo/{todo_id}", status_code=status.HTTP_202_ACCEPTED)
 async def bulk_delete_todo_by_id (user: user_dependency, db: db_dependency, todo_id:int = Path(gt=0)):
@@ -149,6 +172,8 @@ async def bulk_delete_todo_by_id (user: user_dependency, db: db_dependency, todo
         raise HTTPException(status_code=404, detail="Item not found")
 
     return {"message": "Item deleted succesfully"}
+
+
 
 # SQLA FETCH and DELETE
 @router.delete("/fetchdeltodo/{todo_id}", status_code=status.HTTP_202_ACCEPTED)

@@ -104,6 +104,47 @@ Permite que el programa inicie una tarea larga y, en lugar de quedarse congelado
 
 ¿Estás evaluando cuál de los dos enfoques elegir para la arquitectura de tu API actual? Cuéntame qué tipo de base de datos usarás y cuántos usuarios estimas que consumirán tu aplicación para ayudarte a decidir.
 
+# Sync vs Async en FastAPI
+FastAPI brilla justamente por su manejo nativo de programación asincrónica. Como ya conoces Python básico, piénsalo en términos de optimización de recursos y tiempos de espera de la CPU.
+
+## 🌟 Concepto clave: El mozo del restaurante
+
+* Sincrónico (def): Un mozo toma el pedido de una mesa, va a la cocina, espera a que cocinen el plato sin hacer nada más, y luego lo sirve. Las demás mesas esperan completamente bloqueadas.
+
+* Asincrónico (async def): El mozo toma el pedido, lo deja en la cocina y, mientras los cocineros preparan la comida, atiende a otras mesas. Aprovecha el tiempo muerto de espera.
+
+## ⏸️ Sincrónico en FastAPI
+Se define con funciones estándar def. Bloquea el hilo de ejecución por cada solicitud entrante.
+
+* Cuándo usarlo: Tareas puras de CPU que no involucran esperas externas.
+* Ejemplos: Operaciones matemáticas complejas, manipulación de imágenes, parsing de JSON pesado.
+* Código Junior:
+```python
+@app.get("/calcular")def calcular_impuesto(monto: float):
+    # La CPU trabaja activamente sin parar
+    return {"total": monto * 1.19}
+```
+
+## ⚡ Asincrónico en FastAPI
+Se define con async def y libera el control usando la palabra clave await cuando hay operaciones de Entrada/Salida (I/O). [1] 
+
+* Cuándo usarlo: Tareas bloqueantes por redes o discos donde la CPU se queda esperando una respuesta externa.
+* Ejemplos: Consultas a bases de datos, llamadas a APIs de terceros (ej. Stripe o OpenAI), leer archivos grandes.
+* Código Junior:
+```python
+@app.get("/perfil")async def obtener_usuario(user_id: int):
+    # await pausa esta función y libera a FastAPI para atender otros requests
+    usuario = await db.fetch_user(user_id) 
+    return usuario
+```
+
+## 📈 Perspectiva de Negocio: ¿Por qué importa?
+
+* Reducción de costos: Un solo servidor asincrónico con FastAPI puede procesar miles de solicitudes simultáneas que antes requerían múltiples servidores sincrónicos.
+* Mejor experiencia de usuario: Tu aplicación no se "congela" para el Usuario B mientras el Usuario A está descargando un reporte pesado.
+* Escalabilidad: Ideal para arquitecturas modernas de microservicios y consumo intensivo de APIs de Inteligencia Artificial.
+
+
 # SQLA Return data: db.get() vs db.refresh():
  db.get() vs db.refresh():The Big DifferenceWhile both can result in a SQL query, they serve opposite purposes:db.get() tries to avoid the database: It prefers to use the local memory cache to save time. It only hits the database if it absolutely has to.db.refresh() forces a database lookup: It completely ignores the local memory cache. It deliberately wipes out whatever is in your Python memory and pulls a fresh copy straight from the database columns.
 
