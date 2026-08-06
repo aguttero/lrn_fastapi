@@ -22,3 +22,6 @@ from fastapi.security import OAuth2PasswordRequestForm
 ## JWT
 pyjwt
 https://pyjwt.readthedocs.io/en/stable/
+
+## TESTING
+pytest
