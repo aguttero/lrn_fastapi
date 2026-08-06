@@ -1,3 +1,25 @@
+# POSTGRES APP Notes
+## Setup Steps
+check postgressapp.com
+1. Download
+2. Move to Apps folder, Open and click 'Initialize'
+3. Configure your $PATH to use the included command line tools (optional):
+```bash
+sudo mkdir -p /etc/paths.d && echo /Applications/Postgres.app/Contents/Versions/latest/bin | sudo tee /etc/paths.d/postgresapp
+```
+4. default settings:
+Host	localhost
+Port	5432
+User	your system user name
+Database	same as user
+Password	none
+Connection URL	postgresql://localhost
+
+5. Install a GUI -> pgAdmin 4 / Postico
+6. How to connect -> See postgresapp.com
+7. 
+
+
 # Rowcount del Result
 Sí, existen alternativas para obtener o validar la cantidad de filas afectadas en SQLAlchemy 2.0. La elección depende de si estás ejecutando consultas masivas (Bulk) o si necesitas interactuar con los datos modificados.
 ### 1. El método recomendado por el ORM: RETURNING con len()
