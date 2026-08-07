@@ -9,6 +9,11 @@ app = FastAPI()
 # --- CREATE SQLITE DB
 models.Base.metadata.create_all(bind=engine)
 
+# Dev Health Check
+@app.get("/healthy")
+def health_check():
+    return {'status': 'OK Healthy'}
+
 # --- Include routes
 app.include_router(auth.router)
 app.include_router(todos.router)

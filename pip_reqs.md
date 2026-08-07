@@ -25,3 +25,11 @@ https://pyjwt.readthedocs.io/en/stable/
 
 ## TESTING
 pytest
+
+### http requests
+httpx2
+
+bash
+pytest -s to see prints from inside test_filename.py
+pytest path/test_filename.py -s
+pytest test/test_main.py -s
