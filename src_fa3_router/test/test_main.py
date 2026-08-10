@@ -6,6 +6,8 @@ client = TestClient(main.app)
 
 def test_return_health_check():
     response = client.get("/healthy")
-    print (response)
+    print(f"status message= {response.raise_for_status()}")
+    print(response.json())
+
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == {'status': 'OK Healthy'}

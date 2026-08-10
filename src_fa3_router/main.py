@@ -1,5 +1,8 @@
 from fastapi import FastAPI
 import models
+# import src_fa3_router.models as models
+# from src_fa3_router.models import Base
+
 from database import engine
 from routers import auth, todos, admin, users
 
@@ -8,6 +11,7 @@ app = FastAPI()
 
 # --- CREATE SQLITE DB
 models.Base.metadata.create_all(bind=engine)
+# Base.metadata.create_all(bind=engine)
 
 # Dev Health Check
 @app.get("/healthy")

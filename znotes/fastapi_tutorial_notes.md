@@ -29,6 +29,58 @@ fastapi run python_file.py -> prod
 2. dev
 fastapi dev python_file.py -> dev
 
+## Folder Structure Best Practice
+La mejor práctica para organizar un proyecto de FastAPI basado en módulos es seguir una estructura orientada a características (feature-based) o por dominios. Esto agrupa los archivos por su funcionalidad de negocio en lugar de su tipo técnico, lo que facilita enormemente la escalabilidad.
+
+mi_proyecto_fastapi/
+├── app/
+│   ├── __init__.py
+│   ├── main.py                  # Punto de entrada de la aplicación
+│   ├── config.py                # Configuración y variables de entorno
+│   ├── database.py              # Sesión y configuración de la base de datos
+│   │
+│   ├── core/                    # Funcionalidades compartidas en todo el sistema
+│   │   ├── __init__.py
+│   │   ├── security.py          # Hashing de contraseñas, tokens JWT
+│   │   └── dependencies.py      # Dependencias globales (ej. obtener DB)
+│   │
+│   └── modules/                 # Directorio de módulos por características
+│       ├── users/               # Módulo de Usuarios
+│       │   ├── __init__.py
+│       │   ├── router.py        # Endpoints (APIRouter)
+│       │   ├── models.py        # Modelos ORM (SQLAlchemy, Tortoise, etc.)
+│       │   ├── schemas.py       # Modelos Pydantic (Validación de datos)
+│       │   ├── services.py      # Lógica de negocio pesada
+│       │   └── dependencies.py  # Dependencias específicas del módulo
+│       │
+│       └── items/               # Módulo de Ítems (Ejemplo de otro dominio)
+│           ├── __init__.py
+│           ├── router.py
+│           ├── models.py
+│           ├── schemas.py
+│           └── services.py
+│
+├── tests/                       # Pruebas unitarias y de integración
+│   ├── __init__.py
+│   ├── conftest.py
+│   ├── test_users.py
+│   └── test_items.py
+│
+├── .env                         # Variables de entorno locales
+├── .gitignore
+├── README.md
+└── requirements.txt             # o pyproject.toml / Pipfile
+
+### Reglas Clave y Buenas Prácticas
+* Agrupación por dominio: Mantén todo lo relacionado con una característica (users, products, orders) dentro de su propia carpeta. Si eliminas una característica, solo borras esa carpeta.
+* Separación de Modelos y Schemas: Usa models.py estrictamente para la base de datos (ORM) y schemas.py para los modelos de Pydantic que validan la entrada y salida de la API.
+* Lógica en Servicios: No satures los archivos router.py con lógica de negocio compleja ni consultas directas a la base de datos. Crea un archivo services.py para manejar esas operaciones.
+* Enrutador Centralizado: Cada módulo exporta un APIRouter en su archivo router.py. Luego, todos estos enrutadores se importan e integran en el archivo app/main.py usando app.include_router().
+* Uso de Imports Absolutos: Configura siempre tus imports desde la raíz del proyecto (ej. from app.modules.users.models import User) en lugar de usar paths relativos (from .models import User). Esto evita errores cuando el proyecto crece.
+
+
+
+
 # Standard HTTP Status Codes
 ## 1xx Information Response: Request Processing
 ## 2xx Success: Req Successfully complete
