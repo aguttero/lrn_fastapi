@@ -17,7 +17,8 @@ Connection URL	postgresql://localhost
 
 5. Install a GUI -> pgAdmin 4 / Postico
 6. How to connect -> See postgresapp.com
-7. 
+7. After installing pgAdmin GUI may ask for a master password (can be any)
+8. connect -> test_3456!
 
 
 # Rowcount del Result
