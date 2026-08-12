@@ -1,6 +1,6 @@
 # from main import app ### THIS ONE NEEDS TO BE IN UTILS AND NOT HERE ####
 from sqlalchemy import select
-from routers.todos import get_current_user, get_db
+from routers.todos import get_current_user, get_db # these are in routers.auth.py
 from fastapi import status
 from models import Todo
 from .utils import *
