@@ -94,3 +94,45 @@ async def startup_event():
     async with engine.begin() as conn:
         # AQUÍ se ejecuta el comando para crear la base de datos
         await conn.run_sync(Base.metadata.create_all)
+
+# SQLite integration testing
+
+## Best Practice
+Instead of manually deleting data inside your test code, use a pytest fixture with a setup/teardown pattern. This guarantees that your tables are wiped automatically before or after every single test runs.
+
+```python
+import pytest
+from sqlalchemy import delete
+from your_app.database import SessionLocal  # Your test session generator
+from your_app.models import Todo
+
+@pytest.fixture(autouse=True)
+def clean_database():
+    """Automatically runs before each test to ensure data isolation."""
+    # 1. Open a test database session
+    with SessionLocal() as db:
+        # 2. Execute V2 bulk delete on tables
+        db.execute(delete(Todo))
+        # db.execute(delete(User)) # Add other tables here if needed
+        db.commit()
+    
+    yield  # The individual test code runs here
+```
+By adding autouse=True, you do not even need to pass this fixture to your test functions; pytest handles the isolation completely behind the scenes.
+
+## Pro Tip
+If you are using SQLite for integration testing, running bulk deletes can become slow if you have dozens of tables.Instead of deleting rows, the standard industry practice for SQLite testing is to use a fresh, in-memory database (sqlite:///:memory:) for each test run and use SQLAlchemy's metadata to completely drop and recreate the tables. It is often faster and completely foolproof:
+```python
+import pytest
+from your_app.database import engine, Base
+
+@pytest.fixture(scope="function", autouse=True)
+def setup_test_db():
+    # 1. Create all tables from scratch in memory
+    Base.metadata.create_all(bind=engine)
+    
+    yield  # Your test runs here
+    
+    # 2. Wipe everything out instantly at the end of the test
+    Base.metadata.drop_all(bind=engine)
+```

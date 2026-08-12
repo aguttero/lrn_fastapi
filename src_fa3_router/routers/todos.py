@@ -13,6 +13,7 @@ router = APIRouter()
 def get_db():
     db = SessionLocal()
     try:
+        print("checkpoint get_db")
         yield db
     finally:
         db.close()
@@ -56,6 +57,7 @@ async def read_todo_by_id(user: user_dependency ,db: db_dependency, todo_id:int 
 
     # Exception Handling:
     if not found_record:
+        print("record not found")
         raise HTTPException(status_code=404, detail="Item not found")
 
     return found_record
