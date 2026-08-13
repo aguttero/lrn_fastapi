@@ -25,6 +25,7 @@ https://pyjwt.readthedocs.io/en/stable/
 
 ## TESTING
 pytest
+pytest-asyncio to test async functions
 
 ### http requests
 httpx2
