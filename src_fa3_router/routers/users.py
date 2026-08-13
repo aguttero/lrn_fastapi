@@ -34,6 +34,7 @@ class UserVerification(BaseModel):
 # Get user info in DB record
 @router.get("/", status_code=status.HTTP_200_OK)
 async def get_user_info(user: user_dependency, db: db_dependency):
+    # print (f"User= {user}")
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Authentication Failed')
 

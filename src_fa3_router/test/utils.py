@@ -2,10 +2,11 @@ from sqlalchemy import create_engine, delete
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 from database import Base
-from models import Todo
+from models import Todo, User
 import pytest
 from fastapi.testclient import TestClient
 from main import app
+from routers.auth import hash_pwd
 
 TEST_DATABASE_URL = "sqlite:///./test.db"
 TEST_RAM_DATABASE_URL = "sqlite:///:memory:"
@@ -33,7 +34,7 @@ def override_get_current_user():
 
 client = TestClient(app)
 
-
+# Todo Item fixture
 @pytest.fixture
 def test_todo():
     todo_record = Todo(
@@ -53,4 +54,28 @@ def test_todo():
     yield todo_record
     db.execute(delete(Todo))
     print("checkpoint table Todo delete")
+    db.commit()
+
+#User Item fixture
+@pytest.fixture
+def test_user():
+    user_record = User(
+        email = "test3@email.com",
+        username = "user3_test",
+        first_name= "Test_FN",
+        last_name= "Test_LN",
+        hashed_password = hash_pwd('test_password'),
+        role = 'admin'
+    )
+    # print (f"Hsh_Pwd = {user_record.hashed_password}")
+
+    # Create Record
+    db = TestingSessionLocal()
+    db.add(user_record)
+    db.commit()
+
+    # Delete All Records in Todos table
+    yield user_record
+    db.execute(delete(User))
+    print("checkpoint table User delete")
     db.commit()
