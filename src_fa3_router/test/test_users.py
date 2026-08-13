@@ -12,3 +12,19 @@ def test_get_user_info(test_user):
     print(f"status message= {response.status_code}")
     print(f"response.json()={response.json()}")
     assert response.status_code == status.HTTP_200_OK
+    assert response.json()['username'] == 'user3_test'
+    assert response.json()['email'] == 'test3@email.com'
+    assert response.json()['role'] == 'admin'
+
+def test_change_pwd_success(test_user):
+    response = client.put("/user/password", json={"password":"test_password", "new_password":"updated_password"})
+    print(f"status message= {response.status_code}")
+    print(f"response.json()={response.json()}")
+    assert response.status_code == status.HTTP_202_ACCEPTED
+
+def test_change_password_invalid(test_user):
+    response = client.put("/user/password", json={"password":"wrong_password", "new_password":"updated_password"})
+    print(f"status message= {response.status_code}")
+    print(f"response.json()={response.json()}")
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert response.json()== {'detail': 'Error on password change'}
