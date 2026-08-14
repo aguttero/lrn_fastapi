@@ -32,6 +32,22 @@ def jinja_test(request: Request):
     # return templates.TemplateResponse(name="home.html", request={"request":request})
     return templates.TemplateResponse(request,"home.html")
 
+
+@app.get("/login")
+def jinja_test_login(request: Request):
+    # return templates.TemplateResponse(name="home.html", request={"request":request})
+    return templates.TemplateResponse(request=request,name="login.html")
+    # return templates.TemplateResponse(request,"login.html")
+
+
+@app.get("/register")
+def jinja_test_register(request: Request):
+    # return templates.TemplateResponse(name="home.html", request={"request":request})
+    return templates.TemplateResponse(request=request,name="register.html")
+    # return templates.TemplateResponse(request,"login.html")
+
+# END JINJA TEST ENDPOINT
+
 # Dev Health Check
 @app.get("/healthy")
 def health_check():

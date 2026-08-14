@@ -11,6 +11,11 @@ from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 import jwt
 from datetime import timedelta, datetime, timezone
 
+# Fastapi 2 Jinja integration setup
+from fastapi import Request
+from fastapi.templating import Jinja2Templates
+
+
 # --- ROUTE from MAIN FastAPI APP
 # remember to include this module in main.py
 router = APIRouter(prefix='/auth', tags=['auth'])
@@ -51,6 +56,19 @@ def get_db():
 
 db_dependency = Annotated[Session, Depends(get_db)]
 
+templates = Jinja2Templates(directory="templates")
+
+### Pages ###
+
+@router.get("/login-page")
+def render_login_page(request: Request):
+    return templates.TemplateResponse(request,"login.html")
+
+@router.get("/register-page")
+def render_register_page(request: Request):
+    return templates.TemplateResponse(request,"register.html")
+
+### Endpoints ###
 def hash_pwd (plain_pwd: str) -> str:
     pwd_bytes = plain_pwd.encode('utf-8')
     salt = bcrypt.gensalt(rounds=4)
