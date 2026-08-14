@@ -32,5 +32,8 @@ httpx2
 
 bash
 pytest -s to see prints from inside test_filename.py
-pytest path/test_filename.py -s
-pytest test/test_main.py -s
+pytest path/test_filename.py -s -v
+pytest test/test_main.py -s -v
+
+## Jinja2
+pip install jinja2

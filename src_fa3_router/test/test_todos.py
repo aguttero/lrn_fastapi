@@ -10,7 +10,7 @@ app.dependency_overrides[get_current_user] = override_get_current_user
 
 # TESTs
 def test_read_all_authenticated(test_todo):
-    response = client.get("/")
+    response = client.get("/todos/")
     print(f"status message= {response.status_code}")
     print(f"response.json()={response.json()}")
     assert response.status_code == status.HTTP_200_OK
@@ -18,7 +18,7 @@ def test_read_all_authenticated(test_todo):
     assert response.json() == [{'complete':False, 'title' : 'Sample Title', 'description': 'Sample Description', 'priority':5, 'owner_id':1, 'id':1 }]
 
 def test_read_one_authenticated(test_todo):
-    response = client.get("/todo/1") # "/todd/{todo_id}"
+    response = client.get("/todos/todo/1") # "/todd/{todo_id}"
     print(f"status message= {response.status_code}")
     print(f"response.json()={response.json()}")
     assert response.status_code == status.HTTP_200_OK
@@ -27,7 +27,7 @@ def test_read_one_authenticated(test_todo):
 
 # TEST single get authentication ok but item not found
 def test_read_one_authenticated_not_found():
-    response = client.get("/todo/999") # "/todd/{todo_id}"
+    response = client.get("/todos/todo/999") # "/todd/{todo_id}"
     # print(f"status message= {response.raise_for_status()}")
     print(f"status message= {response.status_code}")
     print(f"response.json()={response.json()}")
@@ -43,7 +43,7 @@ def test_create_todo(test_todo):
         'complete': False
     }
 
-    response = client.post('/todo/',json=request_data)
+    response = client.post('/todos/todo/',json=request_data)
     print(f"status message= {response.status_code}")
     print(f"response.json()={response.json()}")
     assert response.status_code == status.HTTP_201_CREATED
@@ -70,7 +70,7 @@ def test_update_item(test_todo):
         'priority': 4,
         'complete': True
     }
-    response = client.put("/todobulk/1", json=request_data)
+    response = client.put("/todos/todobulk/1", json=request_data)
     print(f"status message= {response.status_code}")
     print(f"response.json()={response.json()}")
     assert response.status_code == 200
@@ -92,7 +92,7 @@ def test_update_item_not_found(test_todo):
         'priority': 4,
         'complete': True
     }
-    response = client.put("/todobulk/999", json=request_data)
+    response = client.put("/todos/todobulk/999", json=request_data)
     print(f"status message= {response.status_code}")
     print(f"response.json()={response.json()}")
     assert response.status_code == 404
@@ -101,7 +101,7 @@ def test_update_item_not_found(test_todo):
 
 # TEST DELETE
 def test_delete_todo(test_todo):
-    response = client.delete('/bulkdeltodo/1')
+    response = client.delete('/todos/bulkdeltodo/1')
     print(f"status message= {response.status_code}")
     print(f"response.json()={response.json()}")
     assert response.status_code == 202
@@ -116,7 +116,7 @@ def test_delete_todo(test_todo):
     assert not found_record
 
 def test_delete_todo_not_found(test_todo):  #puedo pasar el test_todo o no en este caso
-    response = client.delete('/bulkdeltodo/999')
+    response = client.delete('/todos/bulkdeltodo/999')
     print(f"status message= {response.status_code}")
     print(f"response.json()={response.json()}")
     assert response.status_code == 404

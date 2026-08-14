@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}My App{% endblock %}</title>
+    <!-- HTMX CDN -->
+    <script src="https://unpkg.com"></script>
+</head>
+<body>
+    <nav>My Production Navbar</nav>
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>
