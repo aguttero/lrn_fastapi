@@ -16,6 +16,8 @@ env
 # content files
 *.pdf
 *.db
+static/
 
 # other files
 .DS_Store
+*.zip

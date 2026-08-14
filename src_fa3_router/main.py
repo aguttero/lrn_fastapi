@@ -1,5 +1,4 @@
 from fastapi import FastAPI
-from fastapi.templating import Jinja2Templates
 from fastapi import Request
 import models
 # import src_fa3_router.models as models
@@ -7,8 +6,18 @@ import models
 
 from database import engine
 from routers import auth, todos, admin, users
+# Jinja Setup
+from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
+
 
 app = FastAPI()
+
+# Mount Static Files:
+app.mount("/static",StaticFiles(directory="static"), name="static")
+
+
+
 # --- CREATE SQLITE DB
 models.Base.metadata.create_all(bind=engine)
 # Base.metadata.create_all(bind=engine)

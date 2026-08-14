@@ -79,6 +79,11 @@ mi_proyecto_fastapi/
 * Uso de Imports Absolutos: Configura siempre tus imports desde la raíz del proyecto (ej. from app.modules.users.models import User) en lugar de usar paths relativos (from .models import User). Esto evita errores cuando el proyecto crece.
 
 
+## PIP Deploy to Fastapi Cloud
+pip install "fastapi[standard]"
+pip freeze > requirements.txt
+fastapi login
+fastapi deploy
 
 
 # Standard HTTP Status Codes
