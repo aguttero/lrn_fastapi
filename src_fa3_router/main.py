@@ -10,6 +10,9 @@ from routers import auth, todos, admin, users
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 
+# FAVICON.ICO
+from fastapi.responses import FileResponse
+
 
 app = FastAPI()
 
@@ -24,6 +27,11 @@ models.Base.metadata.create_all(bind=engine)
 
 # JINJA Template directory
 templates = Jinja2Templates(directory="templates")
+
+# FAVICON
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    return FileResponse("static/favicon.svg")
 
 #JINJA Test endpoint
 @app.get("/")
